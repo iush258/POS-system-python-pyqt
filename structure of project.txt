@@ -1,0 +1,28 @@
+pos_system/
+│
+├── main.py                     # Entry point (launches the app)
+│
+├── config/
+│   └── db_config.py            # MongoDB connection setup
+│
+├── models/                     # Database models / business logic
+│   ├── product.py              # Product model (add, update, find by barcode)
+│   ├── sales.py                # Sales model (cart, checkout, invoice)
+│   └── user.py                 # User model (cashier, admin login)
+│
+├── gui/                        # PyQt GUI files
+│   ├── main_window.py          # Main POS window
+│   ├── add_product_form.py     # Add Product form (used when new barcode scanned)
+│   ├── cart_window.py          # Shopping cart & checkout screen
+│   ├── login_window.py         # Login screen
+│   └── utils.py                # Reusable PyQt components (dialogs, alerts)
+│
+├── services/                   # Core services (logic not tied to GUI)
+│   ├── barcode_service.py      # Handle scanning, lookup in DB
+│   └── inventory_service.py    # Update stock, manage product availability
+│
+├── tests/                      # Unit tests (optional but good practice)
+│   └── test_products.py
+│
+├── requirements.txt            # Python dependencies (PyQt5, pymongo, etc.)
+└── README.md                   # Project overview & instructions

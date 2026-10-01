@@ -1,103 +1,830 @@
+# Dual-Client POS System
 
-# POS-system-python-pyqt-mongodb
+A production-oriented Point of Sale (POS) system built around a **single FastAPI backend**, **PostgreSQL database**, **PyQt6 desktop client**, and **responsive Web POS**.
 
-## 🛒 POS System with Python, MongoDB & Barcode Scanner
+The system is designed to support multiple POS clients while keeping authentication, business rules, pricing, inventory, checkout, and transaction integrity centralized in the backend.
 
-* A simple Point of Sale (POS) system built in Python with the following features:
-* GUI using PyQt
-* MongoDB for storing product, sales, and user data
-* Barcode scanning using a camera (via OpenCV + pyzbar)
-* Product management (add, update, delete, view)
-* Sales processing with cart & billing
-* Reports for sales summary
+It also supports using a **smartphone as a companion barcode scanner** for the Web POS, alongside traditional USB/Bluetooth barcode scanners and manual barcode entry.
 
-# 🔦 Features
-## 📦 Product Management
+---
 
-* Add new products with details (name, price, stock, barcode).
-* Edit or delete existing products.
-* Auto-add new products when scanned for the first time.
+## ✨ Key Features
 
-## 🎥 Barcode Scanning
+### 🖥️ Dual POS Clients
 
-* Uses camera as scanner to fetch product info.
-* If product is not found, user can add details and save to DB.
+* **PyQt6 Desktop POS**
+* **Responsive Web POS**
+* Both clients use the same FastAPI backend
+* No client directly accesses the database
+* Consistent business rules across both clients
 
-## 🛍️ POS Terminal
+### 📱 Multiple Barcode Scanning Methods
 
-* Add items to cart by scanning or selecting.
-* Generates total bill.
-* Updates stock after each sale.
+The POS supports three barcode input methods:
 
-## 📊 Reports & Analytics
+1. **USB/Bluetooth Barcode Scanner**
+2. **Smartphone Camera Scanner**
+3. **Manual Barcode Entry**
 
-+ Daily/weekly/monthly sales reports.
-+ View inventory levels.
+The scanner source can be selected directly from the POS.
 
-## 🛠️ Tech Stack
-+ Python 3.10+
-+ PyQt5 / PySide6 → GUI
-+ MongoDB → Database
-+ OpenCV → Camera handling
-+ pyzbar → Barcode/QR code detection
+### 📲 Smartphone Barcode Scanner
 
-## ✅ Future Enhancements
-+ Add receipt printing (PDF/thermal printer).
-+ Implement user roles (cashier, admin).
-+ Add discounts and offers feature.
-+ Cloud sync support.
+A smartphone can be paired with the Web POS using a temporary QR-based scanner session.
 
-# ⚡ Getting Started
-## 1️⃣ Clone the Repo
-`git clone https://github.com/your-username/pos-system.git`
-`cd pos-system`
-
-## 2️⃣ Install Dependencies
-`pip install -r requirements.txt`
-
-## 3️⃣ Run MongoDB
-+ Make sure MongoDB is running on your system:
-
-`mongod`
-
-## 4️⃣ Start the App
-`python main.py`
-
-
-# 📁File Structure
-```
-pos_system/
-│── config/
-│   ├── db.py           # MongoDB connection setup
-│
-│── models/
-│   ├── products.py     # Product model & DB functions
-│   ├── sales.py        # Sales model & functions
-│   ├── users.py        # (Optional) user management
-│
-│── ui/
-│   ├── main_window.py  # Main GUI window
-│   ├── product_ui.py   # Product management GUI
-│   ├── sales_ui.py     # Sales/checkout GUI
-│
-│── utils/
-│   ├── barcode_scanner.py  # Barcode scanning using camera
-│
-│── main.py             # Entry point of the app
-```
-# Dependencies
-copy this txt into notepad and save it as requirements.txt
-
-```
-# Core Dependencies
-pyqt5==5.15.9        # For GUI (or you can use PySide6 if preferred)
-pymongo==4.5.0       # For MongoDB connection
-opencv-python==4.8.0.74  # For camera handling
-pyzbar==0.1.9        # For barcode/QR code scanning
-
-# Utility
-numpy==1.25.0        # Required by OpenCV
+```text
+Web POS
+   ↓
+Generate Scanner Session
+   ↓
+Display QR Code
+   ↓
+Phone Scans QR
+   ↓
+Phone Camera Scans Barcode
+   ↓
+FastAPI
+   ↓
+Web POS
+   ↓
+Cart
 ```
 
-## ⚡ Install all dependencies
-` pip install -r requirements.txt  `
+The smartphone acts only as a barcode scanner. It does not access PostgreSQL or perform sales calculations.
+
+### 👨‍💼 Cashier / Self-Service Scanner Modes
+
+When using the smartphone scanner, the POS can select between:
+
+#### Cashier Present
+
+* Phone remains paired after a completed sale
+* Multiple transactions can be processed
+* Cart resets after each sale
+* Scanner remains ready for the next transaction
+
+#### No Cashier / Self-Service
+
+* Scanner session is intended for one transaction
+* After a successful sale, the scanner session is revoked
+* The phone cannot continue submitting barcodes
+* A new transaction requires a new pairing
+
+Scanner sessions are temporary, scoped, revocable, and isolated between POS sessions.
+
+---
+
+## 🏗️ Architecture
+
+```text
+                         ┌─────────────────┐
+                         │   PostgreSQL    │
+                         └────────▲────────┘
+                                  │
+                         ┌────────┴────────┐
+                         │     FastAPI     │
+                         │                 │
+                         │ Authentication  │
+                         │ Authorization   │
+                         │ Products        │
+                         │ Inventory       │
+                         │ Pricing         │
+                         │ Payments        │
+                         │ Sales           │
+                         │ Reports         │
+                         │ Scanner         │
+                         └────▲───────▲────┘
+                              │       │
+                   ┌──────────┘       └──────────┐
+                   │                             │
+            ┌──────┴──────┐              ┌──────┴──────┐
+            │  PyQt6 POS  │              │   Web POS   │
+            └─────────────┘              └──────▲──────┘
+                                               │
+                                         ┌─────┴─────┐
+                                         │ Smartphone │
+                                         │  Scanner   │
+                                         └────────────┘
+```
+
+### Core Principle
+
+> **FastAPI is the single source of truth.**
+
+Only the FastAPI backend communicates directly with PostgreSQL.
+
+The clients are responsible primarily for:
+
+* UI
+* user interaction
+* scanner input
+* cart presentation
+* displaying API responses
+* receipt presentation
+
+The backend is responsible for:
+
+* authentication
+* authorization
+* pricing
+* discounts
+* tax
+* payment validation
+* inventory validation
+* inventory deduction
+* sale creation
+* idempotency
+* concurrency control
+* reports
+* audit logging
+* scanner-session security
+
+---
+
+## 🛠️ Technology Stack
+
+### Backend
+
+* Python
+* FastAPI
+* Pydantic
+* SQLAlchemy 2.x
+* PostgreSQL
+* Alembic
+* JWT / secure session authentication
+* Argon2 or bcrypt
+
+### Desktop
+
+* Python
+* PyQt6
+
+### Web
+
+* Modern component-based frontend
+* Responsive UI
+* REST API integration
+* WebSocket support where appropriate
+
+### Mobile Scanner
+
+* Mobile browser
+* Device camera
+* Browser-compatible barcode scanning APIs
+* QR-based pairing
+
+---
+
+## 🔐 Authentication & Authorization
+
+The system uses role-based access control.
+
+### ADMIN
+
+Administrators can manage:
+
+* Products
+* Inventory
+* Users
+* Reports
+* Configuration
+* Audit logs
+
+### CASHIER
+
+Cashiers can:
+
+* Access the POS
+* Search products
+* Scan products
+* Manage carts
+* Process sales
+* View permitted sales information
+
+All authorization decisions are enforced by FastAPI.
+
+Frontend role checks are used only for UI behavior and are **not considered security controls**.
+
+---
+
+## 🛒 POS Checkout Flow
+
+Both the PyQt6 and Web POS use the same backend checkout process:
+
+```text
+Login
+  ↓
+Scan / Search Product
+  ↓
+Cart
+  ↓
+Discount
+  ↓
+Tax
+  ↓
+Payment
+  ↓
+Backend Validation
+  ↓
+Atomic Transaction
+  ↓
+Inventory Deduction
+  ↓
+Sale Creation
+  ↓
+Receipt
+  ↓
+Cart Reset
+```
+
+The backend recalculates:
+
+* Subtotal
+* Discount
+* Tax
+* Grand total
+* Payment status
+* Change
+
+Client-provided totals are never treated as authoritative.
+
+---
+
+## 📦 Inventory Management
+
+The inventory system is designed around transactional consistency.
+
+It supports:
+
+* Stock tracking
+* Low-stock thresholds
+* Stock adjustments
+* Restocking
+* Returns
+* Corrections
+* Inventory audit history
+
+Inventory transactions can be associated with:
+
+* Sales
+* Restocks
+* Manual adjustments
+* Returns
+* Corrections
+
+### Concurrency Protection
+
+The system is designed to prevent situations such as:
+
+```text
+Stock = 1
+
+POS A → attempts to sell 1
+POS B → attempts to sell 1
+```
+
+The backend uses PostgreSQL transactions and appropriate concurrency-control mechanisms so inventory cannot incorrectly become negative.
+
+---
+
+## 💳 Payments
+
+The checkout system is designed to support payment methods such as:
+
+* Cash
+* Card
+* UPI
+* Other configured payment methods
+
+For cash payments:
+
+```text
+Amount Due
+Amount Received
+Change
+```
+
+Payment validation is performed by FastAPI.
+
+---
+
+## 🧾 Historical Sales
+
+Completed sales preserve historical product information.
+
+Sale items can retain snapshots such as:
+
+* Product name
+* SKU
+* Barcode
+* Unit price
+* Tax rate
+* Quantity
+* Discount
+
+This ensures an old receipt remains accurate even if the product's current information changes later.
+
+---
+
+## 🔁 Duplicate Transaction Protection
+
+The checkout system is designed to protect against duplicate sales caused by:
+
+* Double-clicking the payment button
+* Network retries
+* API retries
+* Frontend retries
+* Mobile connection problems
+
+Idempotency mechanisms are used so the same transaction cannot accidentally create multiple completed sales.
+
+---
+
+## 📊 Reports
+
+The planned reporting system includes:
+
+* Daily sales
+* Weekly sales
+* Monthly sales
+* Transaction count
+* Revenue
+* Tax collected
+* Discount totals
+* Payment-method breakdown
+* Top-selling products
+* Low-stock products
+
+Reports are generated from authoritative PostgreSQL data.
+
+---
+
+## 🗄️ Database Design
+
+The system uses PostgreSQL as its primary database.
+
+Core entities include:
+
+```text
+Users
+Categories
+Products
+Inventory
+Inventory Transactions
+
+Sales
+Sale Items
+Payments
+
+Scanner Sessions
+
+Discounts
+Tax Rules
+Audit Logs
+```
+
+Database integrity is supported through:
+
+* Foreign keys
+* Unique constraints
+* Check constraints
+* Indexes
+* Transactions
+* Row-level locking where required
+* Alembic migrations
+
+---
+
+## 📱 Scanner Session Security
+
+Mobile scanner sessions are designed to be:
+
+* Temporary
+* Unpredictable
+* Scoped to a POS session
+* Revocable
+* Expirable
+* Protected against replay
+* Isolated between POS terminals
+
+For example:
+
+```text
+POS A
+  └── Phone A
+       └── Scanner Session A
+```
+
+Phone A cannot submit scans to POS B.
+
+The smartphone never receives permissions to:
+
+* Modify inventory
+* Create arbitrary sales
+* Access PostgreSQL
+* Access administrative functionality
+
+---
+
+## 🧪 Testing
+
+The project aims to include automated tests for:
+
+### Authentication
+
+* Login
+* Invalid credentials
+* Session expiry
+* Authorization
+* RBAC
+
+### Products
+
+* Product creation
+* Barcode lookup
+* Duplicate barcode protection
+* Inactive products
+
+### Inventory
+
+* Stock validation
+* Insufficient stock
+* Concurrent sales
+* Inventory transactions
+* Negative-stock prevention
+
+### Sales
+
+* Successful checkout
+* Duplicate requests
+* Payment validation
+* Inventory deduction
+* Historical snapshots
+* Transaction rollback
+
+### Mobile Scanner
+
+* Session creation
+* QR pairing
+* Invalid pairing
+* Session expiration
+* Session revocation
+* Cashier-present reuse
+* Self-service single-use behavior
+* Session isolation
+* Barcode submission
+
+---
+
+## 📁 Planned Project Structure
+
+```text
+project/
+│
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   │
+│   │   ├── database/
+│   │   │   ├── connection.py
+│   │   │   └── models/
+│   │   │
+│   │   ├── schemas/
+│   │   ├── api/
+│   │   ├── services/
+│   │   ├── security/
+│   │   └── tests/
+│   │
+│   ├── alembic/
+│   ├── alembic.ini
+│   └── requirements.txt
+│
+├── desktop/
+│   ├── app/
+│   │   ├── api_client/
+│   │   ├── ui/
+│   │   └── services/
+│   └── tests/
+│
+├── web/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   └── tests/
+│
+├── mobile-scanner/
+│   └── src/
+│
+└── README.md
+```
+
+---
+
+## 🚧 Development Status
+
+This project is being developed incrementally.
+
+### Current Prototype
+
+The original repository contains early experiments for:
+
+* Product creation
+* Barcode lookup
+* Basic sales
+* Stock updates
+* Camera-based barcode scanning
+
+The original prototype used MongoDB and direct database access.
+
+### Target Architecture
+
+The project is being migrated toward:
+
+* FastAPI
+* PostgreSQL
+* SQLAlchemy
+* Alembic
+* PyQt6 POS
+* Web POS
+* Secure mobile scanner sessions
+* Authentication
+* RBAC
+* Transaction-safe checkout
+* Automated testing
+
+The existing repository should therefore be considered a **prototype starting point rather than a production-ready POS**. The current repository verification also identified missing FastAPI, PostgreSQL, PyQt, Web POS, authentication, atomic checkout, and automated-test layers.
+
+---
+
+## 🗺️ Roadmap
+
+### Phase 1 — Backend Foundation
+
+* [ ] FastAPI setup
+* [ ] PostgreSQL setup
+* [ ] SQLAlchemy models
+* [ ] Alembic migrations
+* [ ] Authentication
+* [ ] RBAC
+* [ ] Error handling
+* [ ] Logging
+
+### Phase 2 — POS Core
+
+* [ ] Product management
+* [ ] Inventory management
+* [ ] Barcode lookup
+* [ ] Pricing service
+* [ ] Tax service
+* [ ] Discount service
+* [ ] Payment service
+* [ ] Atomic checkout
+* [ ] Idempotency
+* [ ] Inventory audit trail
+
+### Phase 3 — PyQt6 POS
+
+* [ ] Login
+* [ ] Dashboard
+* [ ] Product search
+* [ ] Barcode machine
+* [ ] Manual barcode entry
+* [ ] Cart
+* [ ] Checkout
+* [ ] Receipt
+* [ ] Sales history
+
+### Phase 4 — Web POS
+
+* [ ] Login
+* [ ] POS dashboard
+* [ ] Product search
+* [ ] Barcode machine support
+* [ ] Manual barcode entry
+* [ ] Cart
+* [ ] Checkout
+* [ ] Sales history
+* [ ] Inventory
+* [ ] Reports
+
+### Phase 5 — Mobile Scanner
+
+* [ ] Scanner sessions
+* [ ] QR pairing
+* [ ] Camera scanning
+* [ ] WebSocket communication
+* [ ] Cashier-present mode
+* [ ] Self-service mode
+* [ ] Session expiration
+* [ ] Session revocation
+* [ ] POS isolation
+
+### Phase 6 — Production Hardening
+
+* [ ] Automated tests
+* [ ] Concurrency testing
+* [ ] Security testing
+* [ ] Rate limiting
+* [ ] Secure CORS
+* [ ] Health checks
+* [ ] Structured logging
+* [ ] Backups
+* [ ] Recovery procedures
+* [ ] Deployment configuration
+
+---
+
+## 🚀 Getting Started
+
+> The exact commands below will be finalized as the backend, web client, and desktop client are implemented.
+
+### Prerequisites
+
+Install:
+
+* Python 3.x
+* PostgreSQL
+* Node.js and npm/pnpm if required by the selected web stack
+* Git
+
+### Clone
+
+```bash
+git clone <repository-url>
+cd <repository-directory>
+```
+
+### Backend
+
+Create a virtual environment:
+
+```bash
+python -m venv .venv
+```
+
+Activate it on Linux/macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+Configure environment variables:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/pos_db
+
+SECRET_KEY=your-secret-key
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+Run database migrations:
+
+```bash
+alembic upgrade head
+```
+
+Start FastAPI:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+API documentation will be available through FastAPI's generated documentation when the backend is running.
+
+---
+
+## 🔒 Environment Variables
+
+Never commit secrets to Git.
+
+Example:
+
+```env
+DATABASE_URL=
+SECRET_KEY=
+ACCESS_TOKEN_EXPIRE_MINUTES=
+CORS_ORIGINS=
+```
+
+Use a `.env` file locally and keep it excluded through `.gitignore`.
+
+---
+
+## 🎯 Project Goals
+
+The project is designed to demonstrate practical software-engineering concepts including:
+
+* REST API architecture
+* FastAPI
+* PostgreSQL
+* Relational database design
+* SQLAlchemy
+* Database migrations
+* Authentication
+* RBAC
+* Transaction management
+* Concurrency control
+* Inventory consistency
+* Idempotent APIs
+* Desktop application development
+* Responsive web development
+* QR-based device pairing
+* WebSockets
+* Barcode scanning
+* Automated testing
+* Auditability
+
+---
+
+## 📌 Design Principles
+
+### Single Source of Truth
+
+All clients use the same FastAPI backend.
+
+### Backend-First Validation
+
+The client is never trusted for financial or inventory-critical calculations.
+
+### Transaction Safety
+
+Sales and inventory updates must remain consistent.
+
+### Security by Design
+
+Authentication, authorization, session expiry, and scanner isolation are part of the architecture.
+
+### Reusable Business Logic
+
+PyQt and Web POS must not implement separate versions of pricing, tax, inventory, or sales logic.
+
+### Failure-Aware Design
+
+The system must account for:
+
+* Network failures
+* Scanner disconnections
+* Browser closure
+* API timeouts
+* Duplicate requests
+* Concurrent sales
+* Database failures
+
+---
+
+## 📈 Project Vision
+
+The final goal is a POS platform where multiple clients can operate against the same reliable backend without duplicating business logic.
+
+```text
+                 ┌──────────────────┐
+                 │    PostgreSQL    │
+                 └────────▲─────────┘
+                          │
+                 ┌────────┴─────────┐
+                 │      FastAPI     │
+                 │   Single Truth   │
+                 └────▲─────────▲───┘
+                      │           │
+               ┌──────┘           └──────┐
+               │                         │
+          ┌────┴─────┐              ┌────┴─────┐
+          │  PyQt6   │              │  Web POS │
+          │    POS   │              │          │
+          └──────────┘              └────▲─────┘
+                                        │
+                                  ┌─────┴─────┐
+                                  │ Smartphone│
+                                  │  Scanner  │
+                                  └───────────┘
+```
+
+The smartphone is a scanner, the PyQt application is a desktop POS client, the Web application is a web POS client, and **FastAPI remains the central authority for the entire system**.
+
+---
+
+## 📄 License
+
+Add the project's chosen license here.
+
+Example:
+
+```text
+MIT License
+```
+
+---
+
+## 👨‍💻 Development
+
+This project is under active development. Features described in the roadmap may not yet be implemented.
+
+The README distinguishes between the **current prototype** and the **target architecture** to avoid presenting planned functionality as already implemented.

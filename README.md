@@ -526,6 +526,21 @@ project/
 
 This project is being developed incrementally.
 
+### Work Completed So Far
+
+The backend foundation has now been started under `backend/app/`:
+
+* Added a FastAPI application entry point with a `/health` endpoint.
+* Added environment-based settings using `pydantic-settings`.
+* Added SQLAlchemy 2.x database base and PostgreSQL session setup.
+* Added initial models for users, categories, products, inventory, sales, payments, scanner sessions, and audit logs.
+* Added initial Pydantic schemas for authentication, products, users, and checkout requests.
+* Added the backend dependency list in `backend/requirements.txt`.
+* Added `backend/.env.example` for local configuration.
+* Verified that the application imports and compiles when `DATABASE_URL` is configured.
+
+The models and schemas are foundation code. Alembic migrations, authentication, API routes, business services, and automated tests are still pending.
+
 ### Current Prototype
 
 The original repository contains early experiments for:
@@ -562,9 +577,9 @@ The existing repository should therefore be considered a **prototype starting po
 
 ### Phase 1 — Backend Foundation
 
-* [ ] FastAPI setup
-* [ ] PostgreSQL setup
-* [ ] SQLAlchemy models
+* [x] FastAPI setup
+* [x] PostgreSQL setup
+* [x] SQLAlchemy models
 * [ ] Alembic migrations
 * [ ] Authentication
 * [ ] RBAC
@@ -661,7 +676,7 @@ cd <repository-directory>
 Create a virtual environment:
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 ```
 
 Activate it on Linux/macOS:
@@ -679,25 +694,26 @@ pip install -r backend/requirements.txt
 Configure environment variables:
 
 ```env
-DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/pos_db
+APP_NAME=POS Backend
+DEBUG=true
+DATABASE_URL=postgresql+psycopg://postgres:your_password@localhost:5432/pos_database
 
-SECRET_KEY=your-secret-key
-ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-Run database migrations:
+Run the backend from its directory and start FastAPI:
 
 ```bash
-alembic upgrade head
-```
-
-Start FastAPI:
-
-```bash
-uvicorn app.main:app --reload
+cd backend
+python -m uvicorn app.main:app --reload
 ```
 
 API documentation will be available through FastAPI's generated documentation when the backend is running.
+
+The initial health endpoint is available at:
+
+```text
+http://127.0.0.1:8000/health
+```
 
 ---
 
@@ -708,13 +724,12 @@ Never commit secrets to Git.
 Example:
 
 ```env
-DATABASE_URL=
-SECRET_KEY=
-ACCESS_TOKEN_EXPIRE_MINUTES=
-CORS_ORIGINS=
+APP_NAME=POS Backend
+DEBUG=true
+DATABASE_URL=postgresql+psycopg://postgres:your_password@localhost:5432/pos_database
 ```
 
-Use a `.env` file locally and keep it excluded through `.gitignore`.
+Use a `.env` file locally and keep it excluded through `.gitignore`. Do not commit database credentials.
 
 ---
 

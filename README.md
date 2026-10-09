@@ -537,9 +537,16 @@ The backend foundation has now been started under `backend/app/`:
 * Added initial Pydantic schemas for authentication, products, users, and checkout requests.
 * Added the backend dependency list in `backend/requirements.txt`.
 * Added `backend/.env.example` for local configuration.
-* Verified that the application imports and compiles when `DATABASE_URL` is configured.
+* Added temporary development scripts to create the database tables and an initial admin user.
+* Added password hashing with Argon2 through `pwdlib`.
+* Added JWT access-token creation and validation.
+* Added authentication dependencies for loading the current user and enforcing roles.
+* Added authentication and administration routers.
+* Added the login endpoint at `POST /api/auth/login`.
+* Added the protected admin profile endpoint at `GET /api/admin/profile`.
+* Verified health checks, login, JWT authentication, and admin authorization with curl.
 
-The models and schemas are foundation code. Alembic migrations, authentication, API routes, business services, and automated tests are still pending.
+The models and schemas are foundation code. Alembic migrations, product APIs, business services, and automated tests are still pending.
 
 ### Current Prototype
 
@@ -581,8 +588,8 @@ The existing repository should therefore be considered a **prototype starting po
 * [x] PostgreSQL setup
 * [x] SQLAlchemy models
 * [ ] Alembic migrations
-* [ ] Authentication
-* [ ] RBAC
+* [x] Authentication
+* [x] RBAC
 * [ ] Error handling
 * [ ] Logging
 
@@ -697,6 +704,8 @@ Configure environment variables:
 APP_NAME=POS Backend
 DEBUG=true
 DATABASE_URL=postgresql+psycopg://postgres:your_password@localhost:5432/pos_database
+SECRET_KEY=replace-this-with-a-long-random-secret-key
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 ```
 
@@ -715,6 +724,20 @@ The initial health endpoint is available at:
 http://127.0.0.1:8000/health
 ```
 
+The current authentication checks can be tested with:
+
+```bash
+curl http://127.0.0.1:8000/health
+curl -i http://127.0.0.1:8000/api/admin/profile
+curl -i -X POST http://127.0.0.1:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"admin123"}'
+curl -i http://127.0.0.1:8000/api/admin/profile \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+The last request requires `TOKEN` to contain the access token returned by the login request. The protected endpoint should return `401 Not Authenticated` without a token and `200 OK` for a valid admin token.
+
 ---
 
 ## 🔒 Environment Variables
@@ -727,6 +750,8 @@ Example:
 APP_NAME=POS Backend
 DEBUG=true
 DATABASE_URL=postgresql+psycopg://postgres:your_password@localhost:5432/pos_database
+SECRET_KEY=replace-this-with-a-long-random-secret-key
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 Use a `.env` file locally and keep it excluded through `.gitignore`. Do not commit database credentials.

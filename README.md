@@ -544,9 +544,11 @@ The backend foundation has now been started under `backend/app/`:
 * Added authentication and administration routers.
 * Added the login endpoint at `POST /api/auth/login`.
 * Added the protected admin profile endpoint at `GET /api/admin/profile`.
+* Added Alembic configuration and an initial schema migration.
+* Stamped the existing development database at revision `b4e5b39cfe88`.
 * Verified health checks, login, JWT authentication, and admin authorization with curl.
 
-The models and schemas are foundation code. Alembic migrations, product APIs, business services, and automated tests are still pending.
+The models, schemas, authentication layer, and initial migration are foundation code. Product APIs, business services, and automated tests are still pending.
 
 ### Current Prototype
 
@@ -576,7 +578,7 @@ The project is being migrated toward:
 * Transaction-safe checkout
 * Automated testing
 
-The existing repository should therefore be considered a **prototype starting point rather than a production-ready POS**. The current repository verification also identified missing FastAPI, PostgreSQL, PyQt, Web POS, authentication, atomic checkout, and automated-test layers.
+The existing repository should therefore be considered a **prototype starting point rather than a production-ready POS**. The current repository still requires product and inventory APIs, atomic checkout, client applications, and automated tests.
 
 ---
 
@@ -587,7 +589,7 @@ The existing repository should therefore be considered a **prototype starting po
 * [x] FastAPI setup
 * [x] PostgreSQL setup
 * [x] SQLAlchemy models
-* [ ] Alembic migrations
+* [x] Alembic migrations
 * [x] Authentication
 * [x] RBAC
 * [ ] Error handling
@@ -605,6 +607,31 @@ The existing repository should therefore be considered a **prototype starting po
 * [ ] Atomic checkout
 * [ ] Idempotency
 * [ ] Inventory audit trail
+
+### Current Backend Verification
+
+The following checks have passed against the development environment:
+
+```bash
+cd backend
+python -m compileall -q app alembic
+alembic current
+alembic upgrade head
+alembic check
+```
+
+The current database revision is:
+
+```text
+b4e5b39cfe88 (head)
+```
+
+The authentication flow has also been verified:
+
+* `GET /health` returns `200 OK`.
+* `POST /api/auth/login` returns a JWT for a valid admin user.
+* `GET /api/admin/profile` returns `401 Unauthorized` without a token.
+* `GET /api/admin/profile` returns `200 OK` with a valid admin token.
 
 ### Phase 3 — PyQt6 POS
 
@@ -706,13 +733,18 @@ DEBUG=true
 DATABASE_URL=postgresql+psycopg://postgres:your_password@localhost:5432/pos_database
 SECRET_KEY=replace-this-with-a-long-random-secret-key
 ACCESS_TOKEN_EXPIRE_MINUTES=30
-
 ```
 
-Run the backend from its directory and start FastAPI:
+Run migrations from the backend directory:
 
 ```bash
 cd backend
+alembic upgrade head
+```
+
+Start FastAPI:
+
+```bash
 python -m uvicorn app.main:app --reload
 ```
 

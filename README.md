@@ -545,11 +545,12 @@ The backend foundation has now been started under `backend/app/`:
 * Added the login endpoint at `POST /api/auth/login`.
 * Added the protected admin profile endpoint at `GET /api/admin/profile`.
 * Added product management endpoints for creation, listing, search, barcode lookup, updates, and deactivation.
+* Added category management endpoints for creation, listing, lookup, updates, and deletion.
 * Added Alembic configuration and an initial schema migration.
 * Stamped the existing development database at revision `b4e5b39cfe88`.
-* Verified health checks, login, JWT authentication, admin authorization, and product APIs with Postman.
+* Verified health checks, login, JWT authentication, admin authorization, product APIs, and category APIs with Postman.
 
-The models, schemas, authentication layer, initial migration, and product management API are complete foundation modules. Inventory APIs, business services, and automated tests are still pending.
+The models, schemas, authentication layer, initial migration, product management API, and category management API are complete foundation modules. Inventory APIs, business services, and automated tests are still pending.
 
 ### Current Prototype
 
@@ -599,6 +600,7 @@ The existing repository should therefore be considered a **prototype starting po
 ### Phase 2 — POS Core
 
 * [x] Product management
+* [x] Category management
 * [ ] Inventory management
 * [x] Barcode lookup
 * [ ] Pricing service
@@ -645,6 +647,25 @@ Product APIs have been verified with Postman:
 * `DELETE /api/products/{product_id}` deactivates a product.
 * Product creation requires authentication and admin authorization.
 * Duplicate SKU or barcode values return `409 Conflict`.
+
+Category APIs have been verified with Postman:
+
+* `POST /api/categories` creates a category for an admin user.
+* `GET /api/categories` lists categories.
+* `GET /api/categories/{category_id}` returns a category.
+* `PATCH /api/categories/{category_id}` updates a category.
+* `DELETE /api/categories/{category_id}` removes a category.
+* Duplicate category names return `409 Conflict`.
+* Category creation requires authentication and admin authorization.
+* Products assigned to a deleted category remain available with a null category reference.
+
+The category list endpoint uses SQLAlchemy's collection result method:
+
+```python
+db.scalars(statement).all()
+```
+
+This is required when retrieving multiple category records.
 
 ### Phase 3 — PyQt6 POS
 

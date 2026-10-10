@@ -548,11 +548,13 @@ The backend foundation has now been started under `backend/app/`:
 * Added category management endpoints for creation, listing, lookup, updates, and deletion.
 * Added inventory management endpoints for listing, low-stock lookup, restocking, returns, adjustments, and corrections.
 * Added row-level inventory locking for inventory-changing operations.
+* Added shared money rounding, pricing, tax, and discount services.
+* Verified subtotal, percentage discount, tax, and grand-total calculations.
 * Added Alembic configuration and an initial schema migration.
 * Stamped the existing development database at revision `b4e5b39cfe88`.
 * Verified health checks, login, JWT authentication, admin authorization, product APIs, category APIs, and inventory APIs with Postman.
 
-The models, schemas, authentication layer, initial migration, product management API, category management API, and inventory management API are complete foundation modules. Pricing, checkout, reporting, and automated tests are still pending.
+The models, schemas, authentication layer, initial migration, product management API, category management API, inventory management API, and financial calculation services are complete foundation modules. Payment validation, checkout, reporting, and automated tests are still pending.
 
 ### Current Prototype
 
@@ -582,7 +584,7 @@ The project is being migrated toward:
 * Transaction-safe checkout
 * Automated testing
 
-The existing repository should therefore be considered a **prototype starting point rather than a production-ready POS**. The current repository still requires pricing and payment services, atomic checkout, client applications, and automated tests.
+The existing repository should therefore be considered a **prototype starting point rather than a production-ready POS**. The current repository still requires payment validation, atomic checkout, client applications, and automated tests.
 
 ---
 
@@ -605,9 +607,9 @@ The existing repository should therefore be considered a **prototype starting po
 * [x] Category management
 * [x] Inventory management
 * [x] Barcode lookup
-* [ ] Pricing service
-* [ ] Tax service
-* [ ] Discount service
+* [x] Pricing service
+* [x] Tax service
+* [x] Discount service
 * [ ] Payment service
 * [ ] Atomic checkout
 * [ ] Idempotency
@@ -682,6 +684,30 @@ Inventory APIs have been verified with Postman:
 * Negative stock is rejected with `409 Conflict`.
 * Inventory changes require authentication and admin authorization.
 * Inventory updates use row-level locking to protect concurrent changes.
+
+Financial calculation services have been verified with a standalone Python module:
+
+```bash
+cd backend
+python -m app.services.temp
+```
+
+The verified example calculates:
+
+```text
+Subtotal:       200.00
+Discount:        20.00
+Tax:              9.00
+Grand total:    189.00
+```
+
+The calculation is:
+
+```text
+200.00 - 20.00 + 9.00 = 189.00
+```
+
+The pricing, tax, and discount services use `Decimal` values and shared two-decimal currency rounding.
 
 ### Phase 3 — PyQt6 POS
 

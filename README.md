@@ -546,11 +546,13 @@ The backend foundation has now been started under `backend/app/`:
 * Added the protected admin profile endpoint at `GET /api/admin/profile`.
 * Added product management endpoints for creation, listing, search, barcode lookup, updates, and deactivation.
 * Added category management endpoints for creation, listing, lookup, updates, and deletion.
+* Added inventory management endpoints for listing, low-stock lookup, restocking, returns, adjustments, and corrections.
+* Added row-level inventory locking for inventory-changing operations.
 * Added Alembic configuration and an initial schema migration.
 * Stamped the existing development database at revision `b4e5b39cfe88`.
-* Verified health checks, login, JWT authentication, admin authorization, product APIs, and category APIs with Postman.
+* Verified health checks, login, JWT authentication, admin authorization, product APIs, category APIs, and inventory APIs with Postman.
 
-The models, schemas, authentication layer, initial migration, product management API, and category management API are complete foundation modules. Inventory APIs, business services, and automated tests are still pending.
+The models, schemas, authentication layer, initial migration, product management API, category management API, and inventory management API are complete foundation modules. Pricing, checkout, reporting, and automated tests are still pending.
 
 ### Current Prototype
 
@@ -580,7 +582,7 @@ The project is being migrated toward:
 * Transaction-safe checkout
 * Automated testing
 
-The existing repository should therefore be considered a **prototype starting point rather than a production-ready POS**. The current repository still requires inventory APIs, atomic checkout, client applications, and automated tests.
+The existing repository should therefore be considered a **prototype starting point rather than a production-ready POS**. The current repository still requires pricing and payment services, atomic checkout, client applications, and automated tests.
 
 ---
 
@@ -601,7 +603,7 @@ The existing repository should therefore be considered a **prototype starting po
 
 * [x] Product management
 * [x] Category management
-* [ ] Inventory management
+* [x] Inventory management
 * [x] Barcode lookup
 * [ ] Pricing service
 * [ ] Tax service
@@ -666,6 +668,20 @@ db.scalars(statement).all()
 ```
 
 This is required when retrieving multiple category records.
+
+Inventory APIs have been verified with Postman:
+
+* `GET /api/inventory` lists inventory records.
+* `GET /api/inventory/low-stock` lists products at or below their low-stock threshold.
+* `GET /api/inventory/{product_id}` returns inventory for an active product.
+* `POST /api/inventory/{product_id}/restock` adds stock.
+* `POST /api/inventory/{product_id}/return` records returned stock.
+* `POST /api/inventory/{product_id}/adjust` applies a positive or negative adjustment.
+* `POST /api/inventory/{product_id}/correction` sets the exact physical stock quantity.
+* Inventory-changing operations create inventory transaction records.
+* Negative stock is rejected with `409 Conflict`.
+* Inventory changes require authentication and admin authorization.
+* Inventory updates use row-level locking to protect concurrent changes.
 
 ### Phase 3 — PyQt6 POS
 

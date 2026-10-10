@@ -544,11 +544,12 @@ The backend foundation has now been started under `backend/app/`:
 * Added authentication and administration routers.
 * Added the login endpoint at `POST /api/auth/login`.
 * Added the protected admin profile endpoint at `GET /api/admin/profile`.
+* Added product management endpoints for creation, listing, search, barcode lookup, updates, and deactivation.
 * Added Alembic configuration and an initial schema migration.
 * Stamped the existing development database at revision `b4e5b39cfe88`.
-* Verified health checks, login, JWT authentication, and admin authorization with curl.
+* Verified health checks, login, JWT authentication, admin authorization, and product APIs with Postman.
 
-The models, schemas, authentication layer, and initial migration are foundation code. Product APIs, business services, and automated tests are still pending.
+The models, schemas, authentication layer, initial migration, and product management API are complete foundation modules. Inventory APIs, business services, and automated tests are still pending.
 
 ### Current Prototype
 
@@ -578,7 +579,7 @@ The project is being migrated toward:
 * Transaction-safe checkout
 * Automated testing
 
-The existing repository should therefore be considered a **prototype starting point rather than a production-ready POS**. The current repository still requires product and inventory APIs, atomic checkout, client applications, and automated tests.
+The existing repository should therefore be considered a **prototype starting point rather than a production-ready POS**. The current repository still requires inventory APIs, atomic checkout, client applications, and automated tests.
 
 ---
 
@@ -597,9 +598,9 @@ The existing repository should therefore be considered a **prototype starting po
 
 ### Phase 2 — POS Core
 
-* [ ] Product management
+* [x] Product management
 * [ ] Inventory management
-* [ ] Barcode lookup
+* [x] Barcode lookup
 * [ ] Pricing service
 * [ ] Tax service
 * [ ] Discount service
@@ -632,6 +633,18 @@ The authentication flow has also been verified:
 * `POST /api/auth/login` returns a JWT for a valid admin user.
 * `GET /api/admin/profile` returns `401 Unauthorized` without a token.
 * `GET /api/admin/profile` returns `200 OK` with a valid admin token.
+
+Product APIs have been verified with Postman:
+
+* `POST /api/products` creates a product for an admin user.
+* `GET /api/products` lists active products.
+* `GET /api/products?search=<term>` searches by name, SKU, or barcode.
+* `GET /api/products/{product_id}` returns an active product.
+* `GET /api/products/barcode/{barcode}` performs barcode lookup.
+* `PATCH /api/products/{product_id}` updates product details.
+* `DELETE /api/products/{product_id}` deactivates a product.
+* Product creation requires authentication and admin authorization.
+* Duplicate SKU or barcode values return `409 Conflict`.
 
 ### Phase 3 — PyQt6 POS
 
@@ -769,6 +782,42 @@ curl -i http://127.0.0.1:8000/api/admin/profile \
 ```
 
 The last request requires `TOKEN` to contain the access token returned by the login request. The protected endpoint should return `401 Not Authenticated` without a token and `200 OK` for a valid admin token.
+
+### Product API Postman Checks
+
+Use the bearer token returned by the login request in the Postman Authorization tab:
+
+```text
+Type: Bearer Token
+Token: {{token}}
+```
+
+The product API base URL is:
+
+```text
+{{base_url}}/api/products
+```
+
+The verified product requests are:
+
+```text
+POST   {{base_url}}/api/products
+GET    {{base_url}}/api/products
+GET    {{base_url}}/api/products?search=milk
+GET    {{base_url}}/api/products/{{product_id}}
+GET    {{base_url}}/api/products/barcode/{{barcode}}
+PATCH  {{base_url}}/api/products/{{product_id}}
+DELETE {{base_url}}/api/products/{{product_id}}
+```
+
+Expected behavior:
+
+* Product creation returns `201 Created`.
+* Product listing and lookup return `200 OK`.
+* Product deactivation returns `204 No Content`.
+* Requests without a token return `401 Unauthorized`.
+* Product creation by a non-admin user returns `403 Forbidden`.
+* Duplicate SKU or barcode values return `409 Conflict`.
 
 ---
 
